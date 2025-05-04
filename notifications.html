@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Out of Stock Notifications</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      padding: 20px;
+      background: #f4f4f4;
+    }
+
+    h2 {
+      color: #d32f2f;
+    }
+
+    .notification {
+      background-color: #fff0f0;
+      border-left: 5px solid #d32f2f;
+      padding: 10px 15px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .notification strong {
+      color: #b71c1c;
+    }
+
+    .no-items {
+      padding: 10px;
+      background: #e0f7fa;
+      border-left: 5px solid #0097a7;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>🔔 Out of Stock Items</h2>
+
+  <div id="notificationContainer">
+    <p>Loading stock data...</p>
+  </div>
+
+  <!-- ✅ EmailJS Script -->
+  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3.2.0/dist/email.min.js"></script>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
+
+    // ✅ Initialize EmailJS
+    emailjs.init("xlur2K4ZzqR3bT3E2"); // Your EmailJS Public Key
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCddKRuTHpHtaQ0rLOkMOAb5q6slJ3-ybs",
+      authDomain: "project-29b6a.firebaseapp.com",
+      databaseURL: "https://project-29b6a-default-rtdb.firebaseio.com/",
+      projectId: "project-29b6a",
+      storageBucket: "project-29b6a.appspot.com",
+      messagingSenderId: "731238594321",
+      appId: "1:731238594321:web:71c168ad6f35df2944feb0"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const container = document.getElementById("notificationContainer");
+
+    // ✅ Email Sending Function (Fixed)
+    function sendOutOfStockEmail(itemName) {
+      emailjs.send("service_ba3pifi", "template_eechx4s", {
+        item_name: itemName,
+        name: "Inventory Bot" // matches {{name}} in template
+      }).then(() => {
+        console.log("✅ Email sent for:", itemName);
+      }).catch((error) => {
+        console.error("❌ Email send failed:", error);
+      });
+    }
+
+    function loadNotifications() {
+      const stockRef = ref(db, "stocklist");
+
+      onValue(stockRef, (snapshot) => {
+        const data = snapshot.val();
+        container.innerHTML = ""; // Clear existing
+
+        if (!data) {
+          container.innerHTML = "<p class='no-items'>No stock data found.</p>";
+          return;
+        }
+
+        let found = false;
+
+        for (let key in data) {
+          const item = data[key];
+          if (parseInt(item.Quantity) === 0) {
+            found = true;
+
+            const div = document.createElement("div");
+            div.className = "notification";
+            div.innerHTML = `<strong>${item.ItemName}</strong> is <b>Out of Stock</b>.`;
+            container.appendChild(div);
+
+            // ✅ Send Email Notification
+            sendOutOfStockEmail(item.ItemName);
+          }
+        }
+
+        if (!found) {
+          container.innerHTML = `
+            <div class="no-items">✅ All items are in stock. No issues detected.</div>
+          `;
+        }
+      });
+    }
+
+    window.onload = loadNotifications;
+  </script>
+
+</body>
+</html>
